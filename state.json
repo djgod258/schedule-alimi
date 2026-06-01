@@ -1,4 +1,21 @@
 {
-  "occurrences": {},
-  "tg_last_update_id": 0
+  "occurrences": {
+    "localpay_hwaseong:2026-05-01": {
+      "stages_sent": [
+        "eve"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
+    },
+    "localpay_suwon:2026-05-01": {
+      "stages_sent": [
+        "eve"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
+    }
+  },
+  "tg_last_update_id": 161380366
 }

@@ -1,0 +1,6 @@
+# 클라우드(GitHub Actions) 필수
+requests
+holidays
+
+# 로컬 PC 전용(선택) — 시작 토스트 사운드용. tkinter는 파이썬 기본 포함.
+# winotify

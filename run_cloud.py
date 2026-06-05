@@ -5,7 +5,6 @@
 # 환경변수:
 #   TELEGRAM_TOKEN, TELEGRAM_CHAT_ID  : 필수
 #   FORCE_NOW="2026-05-31T21:00"      : (테스트용) 현재 KST 시각 강제
-#   WINDOW_MIN="90"                   : (선택) 발송 윈도우, 기본 90분
 
 from __future__ import annotations
 
@@ -37,7 +36,6 @@ def _resolve_now() -> datetime:
 
 def main() -> None:
     now = _resolve_now()
-    window = int(os.environ.get("WINDOW_MIN", "90"))
     state = ss.load()
 
     # 1) 완료 신호 반영
@@ -50,7 +48,7 @@ def main() -> None:
 
     # 2) 발송 대상 계산 (클라우드는 자정 정각 'now' stage 제외 → 사전 스탠바이로 대비)
     due = sr.due_reminders(
-        now, window,
+        now,
         is_suppressed=lambda occ, stage: ss.is_suppressed(state, occ, stage),
         include_now_stage=False,
     )

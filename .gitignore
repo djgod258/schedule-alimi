@@ -1,4 +1,6 @@
 __pycache__/
 *.pyc
 local.log
+local_active.json
+_sample_popup.py
 .venv/

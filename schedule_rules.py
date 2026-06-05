@@ -28,6 +28,7 @@ class Reminder:
     fire_at: datetime  # KST tz-aware
     target_date: date
     message: str
+    catchup_min: int = 720   # fire_at 이후 이 시간(분)까지 '아직 보낼 수 있음'(지연 흡수)
 
 
 def _dt(d: date, hh: int, mm: int) -> datetime:
@@ -70,6 +71,7 @@ def _expand_event(event_key: str, year: int, month: int) -> list[Reminder]:
         out.append(Reminder(
             occ_id, event_key, meta["label"], meta["emoji"], "morning",
             _dt(target, 8, 30), target, _morning_message(meta, target),
+            catchup_min=14 * 60,   # 당일 안에는 따라잡아 발송(08:30~22:30)
         ))
 
     elif meta["kind"] == "firstcome":
@@ -79,19 +81,25 @@ def _expand_event(event_key: str, year: int, month: int) -> list[Reminder]:
         py, pm = ev.prev_month(year, month)
         eve_day = ev.last_day_of_month(py, pm)         # 전날 = 전월 말일
 
-        stages: list[tuple[str, datetime]] = [
-            ("eve", _dt(eve_day, 21, 0)),              # 전날 저녁 21시
-        ]
-        if (hh, mm) == (0, 0):                          # 화성: 자정 오픈
-            stages.append(("pre", _dt(eve_day, 23, 0)))   # 전날 밤 23시
-            stages.append(("now", _dt(charge, 0, 0)))     # 자정 정각(로컬 best-effort)
-        else:                                            # 수원: 09시 오픈
-            stages.append(("pre", _dt(charge, 8, 30)))    # 당일 아침 직전(08:30)
+        charge_dt = _dt(charge, hh, mm)
+        eve_fire = _dt(eve_day, 21, 0)
+        # eve catch-up: 충전 시각까지(화성 3h, 수원 익일 09시까지 ≈12h)
+        eve_catch = max(120, int((charge_dt - eve_fire).total_seconds() // 60))
 
-        for stage, fire_at in stages:
+        stages: list[tuple[str, datetime, int]] = [
+            ("eve", eve_fire, eve_catch),                  # 전날 저녁 21시
+        ]
+        if (hh, mm) == (0, 0):                             # 화성: 자정 오픈
+            stages.append(("pre", _dt(eve_day, 23, 0), 60))   # 전날 밤 23시 → 자정까지
+            stages.append(("now", _dt(charge, 0, 0), 120))    # 자정 정각(로컬 best-effort)
+        else:                                              # 수원: 09시 오픈
+            stages.append(("pre", _dt(charge, 8, 30), 150))   # 08:30 → 11시까지 따라잡기
+
+        for stage, fire_at, catch in stages:
             out.append(Reminder(
                 occ_id, event_key, meta["label"], meta["emoji"], stage,
                 fire_at, charge, _firstcome_message(meta, charge, stage),
+                catchup_min=catch,
             ))
 
     return out
@@ -117,23 +125,27 @@ def all_reminders_around(ref: date) -> list[Reminder]:
 
 def due_reminders(
     now: datetime,
-    window_min: int,
     is_suppressed,
     include_now_stage: bool = True,
+    grace_min: int = 5,
 ) -> list[Reminder]:
-    """now ± window 안에 발송시각이 있고, 아직 발송/완료되지 않은 reminder 목록.
+    """발송시각이 지났고(따라잡기 창 이내) 아직 발송/완료되지 않은 reminder 목록.
+
+    핵심: fire_at - grace <= now <= fire_at + catchup_min.
+    → GitHub Actions가 몇 시간 늦게 실행돼도, 시각이 지난 알림을 '그날 안에' 따라잡아
+      한 번 발송한다(중복은 is_suppressed로 방지). 이로써 깨움 지연/누락에 견고해진다.
 
     is_suppressed(occ_id, stage) -> bool : 이미 발송했거나 완료(done)면 True.
-    include_now_stage : 클라우드는 'now'(자정 정각) stage를 굳이 안 보내고 싶으면 False.
+    include_now_stage : 클라우드는 'now'(자정 정각) stage를 안 보내려면 False.
     """
-    lo = now - timedelta(minutes=window_min)
-    hi = now + timedelta(minutes=window_min)
     result = []
     seen = set()
     for r in all_reminders_around(now.date()):
         if r.stage == "now" and not include_now_stage:
             continue
-        if not (lo <= r.fire_at <= hi):
+        lo = r.fire_at - timedelta(minutes=grace_min)
+        hi = r.fire_at + timedelta(minutes=r.catchup_min)
+        if not (lo <= now <= hi):
             continue
         if is_suppressed(r.occ_id, r.stage):
             continue

@@ -1,4 +1,11 @@
 {
-  "occurrences": {},
+  "occurrences": {
+    "surcharge:2026-06-05": {
+      "stages_sent": [],
+      "done": true,
+      "done_at": "2026-06-05T16:53:25.160472+09:00",
+      "done_by": "local"
+    }
+  },
   "tg_last_update_id": 161380366
 }

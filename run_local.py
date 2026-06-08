@@ -94,11 +94,18 @@ def save_active(a: dict) -> None:
 
 
 # ── git 동기화 ────────────────────────────────────────────────────────────────
+# pythonw로 띄워도 subprocess로 git.exe를 부르면 콘솔 창이 깜빡 뜬다 → CREATE_NO_WINDOW로 숨김.
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+
+def _run_git(args: list[str], check: bool = False):
+    return subprocess.run(["git", *args], cwd=REPO_DIR, check=check,
+                          capture_output=True, timeout=60, creationflags=_NO_WINDOW)
+
 
 def _git(*args: str) -> bool:
     try:
-        subprocess.run(["git", *args], cwd=REPO_DIR, check=True,
-                       capture_output=True, timeout=60)
+        _run_git(list(args), check=True)
         return True
     except Exception as e:
         log.warning(f"git {' '.join(args)} 실패: {e}")
@@ -115,8 +122,7 @@ def git_push_state() -> None:
         return
     _git("pull", "--rebase", "--autostash")
     _git("add", "state.json")
-    subprocess.run(["git", "commit", "-m", "state: local 완료 동기화"],
-                   cwd=REPO_DIR, capture_output=True)
+    _run_git(["commit", "-m", "state: local 완료 동기화"])   # 변경 없으면 실패해도 무시
     _git("push")
 
 

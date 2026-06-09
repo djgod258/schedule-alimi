@@ -74,6 +74,21 @@ def _expand_event(event_key: str, year: int, month: int) -> list[Reminder]:
             catchup_min=14 * 60,   # 당일 안에는 따라잡아 발송(08:30~22:30)
         ))
 
+    elif meta["kind"] == "remit2":
+        # 월말 송금: 이틀(마지막 영업일 + 다음 영업일) 각각 아침 알림
+        d1, d2 = meta["days"](year, month)
+        for idx, target in enumerate((d1, d2), start=1):
+            occ_id = f"{event_key}:{target.isoformat()}"
+            msg = (
+                f"{meta['emoji']} <b>{meta['label']}</b> (이틀 중 {idx}일차)\n"
+                f"오늘({target:%m월 %d일}) 송금일입니다.\n"
+                f"완료하면 아래 <b>완료</b> 버튼을 눌러주세요."
+            )
+            out.append(Reminder(
+                occ_id, event_key, meta["label"], meta["emoji"], "morning",
+                _dt(target, 8, 30), target, msg, catchup_min=14 * 60,
+            ))
+
     elif meta["kind"] == "firstcome":
         charge = meta["charge"](year, month)          # 1일
         hh, mm = meta["charge_hhmm"]

@@ -95,6 +95,18 @@ def localpay_charge(year: int, month: int) -> date:
     return date(year, month, 1)
 
 
+def remit_day9_target(year: int, month: int) -> date:
+    """9일 송금: 매월 9일, 주말/공휴일이면 직전 영업일."""
+    return prev_business_day(date(year, month, 9))
+
+
+def monthend_remit_days(year: int, month: int) -> tuple[date, date]:
+    """월말 송금: (그 달 마지막 영업일, 그 다음 영업일=다음달 첫 영업일) 이틀."""
+    last_biz = prev_business_day(last_day_of_month(year, month))
+    next_biz = add_business_days(last_biz, 1)
+    return last_biz, next_biz
+
+
 # ── 이벤트 메타 (메시지/이모지) ──────────────────────────────────────────────
 # 실제 알림 시각(stage)별 전개는 schedule_rules.py에서 처리한다.
 
@@ -132,6 +144,18 @@ EVENTS = {
         "charge": localpay_charge,
         "charge_hhmm": (9, 0),      # 1일 09:00
         "city": "수원",
+    },
+    "remit_day9": {
+        "label": "9일 송금",
+        "emoji": "💰",
+        "kind": "morning",          # 매월 9일(평일보정) 당일 아침 1회
+        "target": remit_day9_target,
+    },
+    "remit_monthend": {
+        "label": "월말 송금",
+        "emoji": "💰",
+        "kind": "remit2",           # 마지막 영업일 + 다음 영업일, 이틀 각각 아침 알림
+        "days": monthend_remit_days,
     },
 }
 

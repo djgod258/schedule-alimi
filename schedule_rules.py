@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import events as ev
+import oneoff_store as oneoff
 
 KST = ZoneInfo("Asia/Seoul")
 
@@ -120,8 +121,31 @@ def _expand_event(event_key: str, year: int, month: int) -> list[Reminder]:
     return out
 
 
+def _expand_oneoff() -> list[Reminder]:
+    """단발성 일정(oneoff.json) → Reminder. 지정 시각에 1회(stage='once')."""
+    out: list[Reminder] = []
+    for it in oneoff.load_items():
+        try:
+            dt = datetime.fromisoformat(it["datetime"])
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=KST)
+        except Exception:
+            continue
+        occ_id = f"oneoff:{it['id']}"
+        msg = (
+            f"📌 <b>{it.get('title', '일정')}</b>\n"
+            f"{dt:%m월 %d일 %H:%M} 일정입니다.\n"
+            f"완료하면 아래 <b>완료</b> 버튼을 눌러주세요."
+        )
+        out.append(Reminder(
+            occ_id, "oneoff", it.get("title", "일정"), "📌", "once",
+            dt, dt.date(), msg, catchup_min=14 * 60,
+        ))
+    return out
+
+
 def all_reminders_around(ref: date) -> list[Reminder]:
-    """ref가 속한 달의 전·당·다음 달 이벤트를 모두 전개 (월 경계 stage 커버)."""
+    """ref가 속한 달의 전·당·다음 달 이벤트 + 단발성 일정을 모두 전개."""
     months = set()
     for delta in (-1, 0, 1):
         y, m = ref.year, ref.month + delta
@@ -135,6 +159,7 @@ def all_reminders_around(ref: date) -> list[Reminder]:
     for (y, m) in months:
         for key in ev.EVENTS:
             out.extend(_expand_event(key, y, m))
+    out.extend(_expand_oneoff())
     return out
 
 

@@ -75,18 +75,21 @@ def _answer_callback(callback_id: str, text: str = "완료 처리됨 ✅") -> No
         log.error(f"answerCallbackQuery 오류: {e}")
 
 
-def fetch_done_acks(last_update_id: int) -> tuple[list[str], int]:
-    """getUpdates로 완료 신호 수집.
+def fetch_updates(last_update_id: int) -> tuple[list[str], list[str], int]:
+    """getUpdates로 완료 신호 + 명령 텍스트 수집.
 
-    수신 경로 두 가지:
+    완료 경로:
       1) 인라인버튼 콜백:  callback_data = "done:<occ_id>"
       2) 텍스트 명령:      "/done <occ_id>"  또는  "done:<occ_id>"
-    반환: (완료된 occ_id 리스트, 새 last_update_id)
+    명령 경로(단발성 일정):
+      "/add 6/15 14:00 치과예약", "/list", "/del <id끝4자리>"
+    반환: (완료된 occ_id 리스트, 명령 텍스트 리스트, 새 last_update_id)
     """
     if not _enabled():
-        return [], last_update_id
+        return [], [], last_update_id
 
     done_ids: list[str] = []
+    commands: list[str] = []
     new_offset = last_update_id
     try:
         resp = requests.get(f"{API}/getUpdates", params={
@@ -96,7 +99,7 @@ def fetch_done_acks(last_update_id: int) -> tuple[list[str], int]:
         }, timeout=15)
         if not resp.ok:
             log.error(f"getUpdates 실패: {resp.text}")
-            return [], last_update_id
+            return [], [], last_update_id
         for upd in resp.json().get("result", []):
             new_offset = max(new_offset, upd.get("update_id", new_offset))
 
@@ -110,15 +113,22 @@ def fetch_done_acks(last_update_id: int) -> tuple[list[str], int]:
 
             msg = upd.get("message") or {}
             text = (msg.get("text") or "").strip()
-            occ = None
+            if not text:
+                continue
             if text.startswith("/done "):
-                occ = text[len("/done "):].strip()
+                done_ids.append(text[len("/done "):].strip())
             elif text.startswith("done:"):
-                occ = text[len("done:"):].strip()
-            if occ:
-                done_ids.append(occ)
+                done_ids.append(text[len("done:"):].strip())
+            elif text.startswith(("/add", "/list", "/del", "/help")):
+                commands.append(text)
     except Exception as e:
         log.error(f"getUpdates 오류: {e}")
-        return [], last_update_id
+        return [], [], last_update_id
 
-    return done_ids, new_offset
+    return done_ids, commands, new_offset
+
+
+# 하위호환 별칭
+def fetch_done_acks(last_update_id: int) -> tuple[list[str], int]:
+    done_ids, _cmds, off = fetch_updates(last_update_id)
+    return done_ids, off

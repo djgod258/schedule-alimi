@@ -45,10 +45,10 @@ jobs:
           FORCE_NOW:        ${{ github.event.inputs.force_now }}
         run: python run_cloud.py
 
-      - name: state.json 커밋
+      - name: state·oneoff 커밋
         run: |
           git config user.name  "schedule-bot"
           git config user.email "schedule@github.com"
-          git add state.json
+          git add state.json oneoff.json
           git diff --cached --quiet || git commit -m "state: $(date -u '+%Y-%m-%dT%H:%MZ')"
           git push || true

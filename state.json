@@ -21,6 +21,12 @@
       "done": true,
       "done_at": "2026-06-09T13:23:22.708592+09:00",
       "done_by": "local"
+    },
+    "oneoff:20260624T0830-f454": {
+      "stages_sent": [],
+      "done": true,
+      "done_at": "2026-06-24T09:00:23.396847+09:00",
+      "done_by": "local"
     }
   },
   "tg_last_update_id": 161380366

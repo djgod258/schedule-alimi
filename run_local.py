@@ -23,6 +23,8 @@ from pathlib import Path
 
 import schedule_rules as sr
 import state_store as ss
+import notifier_telegram as tg
+import inbox
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,7 +40,12 @@ REPO_DIR = Path(__file__).parent
 ACTIVE_FILE = REPO_DIR / "local_active.json"   # 로컬 전용 활성 알림(스누즈) 상태
 LOOP_SEC = 15
 PULL_EVERY_SEC = 300          # 5분마다 git pull (클라우드 완료 반영)
+INBOX_EVERY_SEC = 20          # 텔레그램 완료/명령 폴링 주기(PC 켜져있으면 거의 즉시 반영)
 GIT_SYNC = os.environ.get("LOCAL_GIT_SYNC", "1") != "0"
+
+
+def _telegram_ready() -> bool:
+    return bool(os.environ.get("TELEGRAM_TOKEN")) and bool(os.environ.get("TELEGRAM_CHAT_ID"))
 
 # 드롭다운 스누즈 선택지 (표시 → 분)
 SNOOZE_OPTIONS = [("10분 뒤", 10), ("30분 뒤", 30), ("1시간 뒤", 60),
@@ -136,6 +143,39 @@ def _mark_done_state(occ_id: str) -> None:
         threading.Thread(target=git_push_state, daemon=True).start()
 
 
+def _send_telegram_and_record(r: sr.Reminder) -> None:
+    """PC가 켜져 있을 때는 클라우드(하루 4회)를 기다리지 않고 즉시 텔레그램도 발송.
+    클라우드가 늦게 깨어나기 전에 로컬에서 '완료'를 눌러버리면 텔레그램이 영영 안 가는
+    레이스를 막기 위함(stages_sent를 바로 기록해 클라우드 쪽 중복발송도 방지)."""
+    if not _telegram_ready():
+        return
+    try:
+        ok = tg.send_reminder(r.message, r.occ_id)
+    except Exception as e:
+        log.warning(f"텔레그램 발송 실패: {e}")
+        return
+    if ok:
+        with _lock:
+            st = ss.load()
+            ss.mark_sent(st, r.occ_id, r.stage)
+            ss.save(st)
+        log.info(f"텔레그램 발송(로컬): {r.occ_id} [{r.stage}]")
+        threading.Thread(target=git_push_state, daemon=True).start()
+
+
+def _process_inbox_and_push() -> None:
+    """텔레그램 완료버튼/명령(/add /list /del)을 로컬이 직접 폴링·처리(PC 켜진 동안 거의 즉시)."""
+    if not _telegram_ready():
+        return
+    with _lock:
+        st = ss.load()
+        done_n, cmd_n = inbox.process_inbox(st, done_by="telegram")
+        ss.save(st)
+    if done_n or cmd_n:
+        log.info(f"인박스(로컬): 완료 {done_n}건 / 명령 {cmd_n}건")
+        threading.Thread(target=git_push_state, daemon=True).start()
+
+
 # ── 팝업 ─────────────────────────────────────────────────────────────────────
 
 def show_popup(key: str, entry: dict) -> None:
@@ -227,21 +267,27 @@ def _resolve_now() -> datetime:
 
 
 def main() -> None:
-    log.info("스케쥴 알리미(로컬) 시작 — 완료 누를 때까지 스누즈로 반복 알림")
+    log.info("스케쥴 알리미(로컬) 시작 — 완료 누를 때까지 스누즈로 반복 알림 + 텔레그램 동시 발송")
     last_pull = 0.0
+    last_inbox = 0.0
     while True:
         try:
             if time.time() - last_pull > PULL_EVERY_SEC:
                 git_pull()
                 last_pull = time.time()
 
+            if time.time() - last_inbox > INBOX_EVERY_SEC:
+                _process_inbox_and_push()
+                last_inbox = time.time()
+
             now = _resolve_now()
             state = ss.load()
             to_show = []
+            newly_due: list[sr.Reminder] = []
             with _lock:
                 active = load_active()
 
-                # 1) 새로 도래한 due 알림 → active 등록 (즉시 표시 대상)
+                # 1) 새로 도래한 due 알림 → active 등록 (즉시 표시 대상) + 텔레그램 발송 대상으로 적립
                 def suppressed(occ, stage):
                     return ss.is_suppressed(state, occ, stage) or f"{occ}|{stage}" in active
 
@@ -251,6 +297,7 @@ def main() -> None:
                         "emoji": r.emoji, "message": r.message,
                         "snooze_until": now.isoformat(), "showing": False,
                     }
+                    newly_due.append(r)
 
                 # 2) 클라우드/타지점에서 완료된 항목 제거
                 for k in list(active):
@@ -266,6 +313,10 @@ def main() -> None:
                         to_show.append((k, dict(e)))
 
                 save_active(active)
+
+            # 잠금 밖에서 처리(네트워크 호출 포함) — 팝업과 텔레그램을 거의 동시에 내보냄
+            for r in newly_due:
+                _send_telegram_and_record(r)
 
             for k, e in to_show:
                 show_popup(k, e)

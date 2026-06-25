@@ -16,6 +16,7 @@ import schedule_rules as sr
 import state_store as ss
 import notifier_telegram as tg
 import oneoff_store as oneoff
+import inbox
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,20 +40,8 @@ def main() -> None:
     now = _resolve_now()
     state = ss.load()
 
-    # 1) 완료 신호 + 명령 수신
-    done_ids, commands, new_offset = tg.fetch_updates(state.get("tg_last_update_id", 0))
-    state["tg_last_update_id"] = new_offset
-    for occ_id in done_ids:
-        if ss.mark_done(state, occ_id, by="telegram"):
-            log.info(f"완료 처리: {occ_id}")
-            tg.send_plain(f"☑️ <b>완료 확인</b> — 더 이상 알리지 않습니다.\n<code>{occ_id}</code>")
-
-    # 단발성 일정 명령(/add /list /del)
-    for cmd in commands:
-        reply = oneoff.handle_command(cmd)
-        if reply:
-            log.info(f"명령: {cmd}")
-            tg.send_plain(reply)
+    # 1) 완료 신호 + 명령 수신 (PC가 켜져 있었으면 이미 로컬이 처리했을 수 있음 — 멱등)
+    done_n, cmd_n = inbox.process_inbox(state, done_by="telegram")
 
     # 2) 발송 대상 계산 (클라우드는 자정 정각 'now' stage 제외 → 사전 스탠바이로 대비)
     due = sr.due_reminders(
@@ -69,7 +58,7 @@ def main() -> None:
     ss.prune(state)
     oneoff.prune()
     ss.save(state)
-    log.info(f"완료 {len(done_ids)}건 / 발송 {len(due)}건 / now={now:%Y-%m-%d %H:%M}")
+    log.info(f"완료 {done_n}건 / 명령 {cmd_n}건 / 발송 {len(due)}건 / now={now:%Y-%m-%d %H:%M}")
 
 
 if __name__ == "__main__":

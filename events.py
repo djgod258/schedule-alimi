@@ -134,8 +134,9 @@ EVENTS = {
         "emoji": "💳",
         "kind": "firstcome",        # 선착순: 전날 저녁 + 직전 스탠바이
         "charge": localpay_charge,
-        "charge_hhmm": (0, 0),      # 1일 00:00 (자정)
+        "charge_hhmm": (15, 0),     # 1일 15:00 (2026-06 변경: 기존 00:00 자정 → 15시로 조정)
         "city": "화성",
+        "note": "⚠️ 15시 이전 충전 시 인센티브 미지급! 15시 이후에 충전하세요.",
     },
     "localpay_suwon": {
         "label": "수원 지역화폐 충전",

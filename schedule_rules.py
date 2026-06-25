@@ -47,18 +47,16 @@ def _morning_message(meta: dict, target: date) -> str:
 def _firstcome_message(meta: dict, charge: date, stage: str) -> str:
     hh, mm = meta["charge_hhmm"]
     when = f"{charge:%m월 %d일} {hh:02d}:{mm:02d}"
-    city = meta["city"]
     head = f"{meta['emoji']} <b>{meta['label']}</b> (선착순)"
     if stage == "eve":
         body = f"내일 {when} 충전 오픈! 오늘 미리 스탠바이 하세요."
     elif stage == "pre":
-        if (hh, mm) == (0, 0):
-            body = f"곧 자정! {city} 지역화폐 충전 임박 — 지금 대기하세요."
-        else:
-            body = f"{when} 충전 임박 — 곧 오픈, 대기하세요."
+        body = f"{when} 충전 임박 — 곧 오픈, 대기하세요."
     else:  # now
-        body = f"지금! {city} 지역화폐 충전 오픈 — 바로 충전하세요."
-    return f"{head}\n{body}\n완료하면 <b>완료</b> 버튼을 눌러주세요."
+        body = f"지금! {when} 충전 오픈 — 바로 충전하세요."
+    note = meta.get("note")
+    tail = f"\n{note}" if note else ""
+    return f"{head}\n{body}{tail}\n완료하면 <b>완료</b> 버튼을 눌러주세요."
 
 
 def _expand_event(event_key: str, year: int, month: int) -> list[Reminder]:
@@ -99,17 +97,15 @@ def _expand_event(event_key: str, year: int, month: int) -> list[Reminder]:
 
         charge_dt = _dt(charge, hh, mm)
         eve_fire = _dt(eve_day, 21, 0)
-        # eve catch-up: 충전 시각까지(화성 3h, 수원 익일 09시까지 ≈12h)
-        eve_catch = max(120, int((charge_dt - eve_fire).total_seconds() // 60))
+        # eve catch-up: 다음 stage(pre)가 뜨기 전까지 유효
+        eve_catch = max(120, int((charge_dt - eve_fire).total_seconds() // 60) - 30)
 
+        # 두 도시 동일 패턴: 전날 저녁 21시 → 오픈 30분 전 → 오픈 정각
         stages: list[tuple[str, datetime, int]] = [
-            ("eve", eve_fire, eve_catch),                  # 전날 저녁 21시
+            ("eve", eve_fire, eve_catch),
+            ("pre", charge_dt - timedelta(minutes=30), 90),
+            ("now", charge_dt, 120),
         ]
-        if (hh, mm) == (0, 0):                             # 화성: 자정 오픈
-            stages.append(("pre", _dt(eve_day, 23, 0), 60))   # 전날 밤 23시 → 자정까지
-            stages.append(("now", _dt(charge, 0, 0), 120))    # 자정 정각(로컬 best-effort)
-        else:                                              # 수원: 09시 오픈
-            stages.append(("pre", _dt(charge, 8, 30), 150))   # 08:30 → 11시까지 따라잡기
 
         for stage, fire_at, catch in stages:
             out.append(Reminder(

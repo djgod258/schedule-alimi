@@ -65,6 +65,23 @@ def send_plain(message: str) -> bool:
         return False
 
 
+def send_with_buttons(message: str, inline_keyboard: list) -> bool:
+    """임의 인라인 버튼(행 목록)과 함께 메시지 전송. 단발성 일정 /list 등에서 사용."""
+    if not _enabled():
+        return False
+    try:
+        resp = requests.post(f"{API}/sendMessage", data={
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": message,
+            "parse_mode": "HTML",
+            "reply_markup": json.dumps({"inline_keyboard": inline_keyboard}),
+        }, timeout=10)
+        return resp.ok
+    except Exception as e:
+        log.error(f"텔레그램 오류: {e}")
+        return False
+
+
 def _answer_callback(callback_id: str, text: str = "완료 처리됨 ✅") -> None:
     try:
         requests.post(f"{API}/answerCallbackQuery", data={
@@ -81,8 +98,9 @@ def fetch_updates(last_update_id: int) -> tuple[list[str], list[str], int]:
     완료 경로:
       1) 인라인버튼 콜백:  callback_data = "done:<occ_id>"
       2) 텍스트 명령:      "/done <occ_id>"  또는  "done:<occ_id>"
-    명령 경로(단발성 일정):
+    명령 경로(단발성 일정 — 텍스트 또는 /list의 인라인 버튼 탭):
       "/add 6/15 14:00 치과예약", "/list", "/del <id끝4자리>"
+      버튼: callback_data="ondel:<id>"(삭제) / "onlist"(새로고침) → 동등한 명령으로 변환
     반환: (완료된 occ_id 리스트, 명령 텍스트 리스트, 새 last_update_id)
     """
     if not _enabled():
@@ -109,6 +127,12 @@ def fetch_updates(last_update_id: int) -> tuple[list[str], list[str], int]:
                 if data.startswith("done:"):
                     done_ids.append(data[len("done:"):])
                     _answer_callback(cq.get("id", ""))
+                elif data.startswith("ondel:"):
+                    commands.append(f"/del {data[len('ondel:'):]}")
+                    _answer_callback(cq.get("id", ""), text="삭제 처리 중…")
+                elif data == "onlist":
+                    commands.append("/list")
+                    _answer_callback(cq.get("id", ""), text="새로고침")
                 continue
 
             msg = upd.get("message") or {}

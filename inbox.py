@@ -21,6 +21,10 @@ def process_inbox(state: dict, done_by: str) -> tuple[int, int]:
             tg.send_plain(f"☑️ <b>완료 확인</b> — 더 이상 알리지 않습니다.\n<code>{occ_id}</code>")
 
     for cmd in commands:
+        if cmd.strip().lower().startswith("/list"):
+            tg.send_with_buttons(oneoff.format_list(), oneoff.list_keyboard())
+            log.info("명령: /list (버튼)")
+            continue
         reply = oneoff.handle_command(cmd)
         if reply:
             log.info(f"명령: {cmd}")

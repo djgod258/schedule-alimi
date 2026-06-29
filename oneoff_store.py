@@ -78,6 +78,22 @@ def format_list() -> str:
     return "\n".join(lines)
 
 
+def list_keyboard() -> list[list[dict]]:
+    """/list 메시지에 붙일 인라인 버튼: 항목별 삭제 + 새로고침. 타이핑 없이 탭만으로 관리."""
+    items = sorted(load_items(), key=lambda x: x["datetime"])
+    rows = []
+    for x in items:
+        try:
+            dt = datetime.fromisoformat(x["datetime"])
+            when = f"{dt:%m/%d %H:%M}"
+        except Exception:
+            when = x["datetime"]
+        title = x["title"][:14]
+        rows.append([{"text": f"🗑 {when} {title}", "callback_data": f"ondel:{x['id']}"}])
+    rows.append([{"text": "🔄 새로고침", "callback_data": "onlist"}])
+    return rows
+
+
 # ── 날짜/시각 파싱 ────────────────────────────────────────────────────────────
 # 허용: "6/15 14:00", "2026-6-15 14:00", "6/15"(→08:30), "6-15 9시", "0615 1400"
 

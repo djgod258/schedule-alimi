@@ -13,6 +13,7 @@ import logging
 import notifier_telegram as tg
 import state_store as ss
 import oneoff_store as oneoff
+import schedule_rules as sr
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +49,13 @@ def apply(state: dict, done_ids: list[str], commands: list[str], texts: list[str
             oneoff.set_awaiting_add(False)
             _send_list_buttons()
             log.info("명령: /list (버튼)")
+            handled += 1
+            continue
+
+        if low.startswith("/fixed"):
+            oneoff.set_awaiting_add(False)
+            tg.send_plain(sr.format_fixed_list(sr.now_kst()))
+            log.info("명령: /fixed")
             handled += 1
             continue
 

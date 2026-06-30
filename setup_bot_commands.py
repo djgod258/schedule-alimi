@@ -11,6 +11,7 @@ TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 COMMANDS = [
     {"command": "add", "description": "일정 추가"},
     {"command": "list", "description": "일정 목록(단발성)"},
+    {"command": "fixed", "description": "일정 목록(고정)"},
     {"command": "del", "description": "일정 삭제"},
     {"command": "help", "description": "도움말"},
 ]

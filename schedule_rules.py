@@ -195,6 +195,56 @@ def due_reminders(
     return result
 
 
+# ── 고정 일정 목록 (텔레그램 /fixed) ──────────────────────────────────────────
+
+_WD_KO = ["월", "화", "수", "목", "금", "토", "일"]
+
+
+def _ko_date(dt: datetime) -> str:
+    return f"{dt:%m/%d}({_WD_KO[dt.weekday()]})"
+
+
+def upcoming_fixed(now: datetime, days: int = 60) -> list[Reminder]:
+    """다음 days일 동안의 고정(반복) 일정. 단발성은 제외, occurrence별 가장 이른
+    stage(=최초 안내 시점) 하나만 남긴다."""
+    end_dt = now + timedelta(days=days)
+    months = set()
+    d = now.date()
+    while d <= end_dt.date():
+        months.add((d.year, d.month))
+        d += timedelta(days=1)
+    # 월경계 stage(예: 전월 말일 21시 알림) 누락 방지로 앞뒤 한 달씩 더 본다.
+    for (y, m) in list(months):
+        for delta in (-1, 1):
+            yy, mm = y, m + delta
+            if mm < 1:
+                yy, mm = y - 1, 12
+            elif mm > 12:
+                yy, mm = y + 1, 1
+            months.add((yy, mm))
+
+    best: dict[str, Reminder] = {}
+    for (y, m) in months:
+        for key in ev.EVENTS:
+            for r in _expand_event(key, y, m):
+                if r.occ_id not in best or r.fire_at < best[r.occ_id].fire_at:
+                    best[r.occ_id] = r
+
+    out = [r for r in best.values() if now <= r.fire_at <= end_dt]
+    out.sort(key=lambda r: r.fire_at)
+    return out
+
+
+def format_fixed_list(now: datetime, days: int = 60) -> str:
+    items = upcoming_fixed(now, days=days)
+    if not items:
+        return f"📅 앞으로 {days}일 동안 예정된 고정 일정이 없습니다."
+    lines = [f"📅 <b>고정 일정</b> (다음 {days}일)"]
+    for r in items:
+        lines.append(f"• {_ko_date(r.fire_at)} {r.fire_at:%H:%M}  {r.emoji} {r.label}")
+    return "\n".join(lines)
+
+
 # ── 셀프테스트 ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     # 2026-06-01 충전 관련 stage 시각 출력

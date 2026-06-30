@@ -169,7 +169,7 @@ def fetch_updates(last_update_id: int, timeout: int = 0) -> tuple[list[str], lis
                 done_ids.append(text[len("/done "):].strip())
             elif text.startswith("done:"):
                 done_ids.append(text[len("done:"):].strip())
-            elif text.startswith(("/add", "/list", "/del", "/help")):
+            elif text.startswith(("/add", "/list", "/del", "/help", "/fixed")):
                 commands.append(text)
             elif not text.startswith("/"):
                 texts.append(text)

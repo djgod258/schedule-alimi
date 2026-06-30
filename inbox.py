@@ -11,6 +11,11 @@ import oneoff_store as oneoff
 log = logging.getLogger(__name__)
 
 _BARE_ADD = re.compile(r"^/add\s*$", re.IGNORECASE)
+_BARE_DEL = re.compile(r"^/del\s*$", re.IGNORECASE)
+
+
+def _send_list_buttons() -> None:
+    tg.send_with_buttons(oneoff.format_list(), oneoff.list_keyboard())
 
 
 def process_inbox(state: dict, done_by: str) -> tuple[int, int]:
@@ -31,8 +36,16 @@ def process_inbox(state: dict, done_by: str) -> tuple[int, int]:
 
         if low.startswith("/list"):
             oneoff.set_awaiting_add(False)
-            tg.send_with_buttons(oneoff.format_list(), oneoff.list_keyboard())
+            _send_list_buttons()
             log.info("명령: /list (버튼)")
+            handled += 1
+            continue
+
+        if _BARE_DEL.match(stripped):
+            # 메뉴에서 /del만 누르면 즉시 전송됨 → ID 타이핑 없이 삭제 버튼 목록을 바로 보여줌
+            oneoff.set_awaiting_add(False)
+            _send_list_buttons()
+            log.info("명령: /del (버튼 목록)")
             handled += 1
             continue
 

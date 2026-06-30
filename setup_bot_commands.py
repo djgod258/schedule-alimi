@@ -9,10 +9,10 @@ import requests
 TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 
 COMMANDS = [
-    {"command": "add", "description": "일정 추가 (예: 6/15 14:00 회의)"},
-    {"command": "list", "description": "단발성 일정 목록 보기"},
-    {"command": "del", "description": "일정 삭제 (예: /del f454)"},
-    {"command": "help", "description": "명령어 도움말"},
+    {"command": "add", "description": "일정 추가"},
+    {"command": "list", "description": "일정 목록(단발성)"},
+    {"command": "del", "description": "일정 삭제"},
+    {"command": "help", "description": "도움말"},
 ]
 
 

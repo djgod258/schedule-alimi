@@ -180,10 +180,16 @@ def _inbox_long_poll_loop() -> None:
 
             with _lock:
                 offset = ss.load().get("tg_last_update_id", 0)
+            t0 = time.time()
             done_ids, commands, texts, new_offset = inbox.fetch(offset, timeout=INBOX_LONGPOLL_SEC)
+            elapsed = time.time() - t0
 
             if not done_ids and not commands and not texts and new_offset == offset:
-                continue  # 타임아웃으로 빈손 귀환 — 새 소식 없음, 즉시 재요청
+                # 타임아웃(정상, ~INBOX_LONGPOLL_SEC초 걸림)이면 바로 재요청.
+                # 너무 빨리(예: 409 충돌 등) 빈손으로 돌아왔으면 짧게 쉬어 폭주 방지.
+                if elapsed < 3:
+                    time.sleep(2)
+                continue
 
             with _lock:
                 st = ss.load()

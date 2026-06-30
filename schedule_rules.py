@@ -204,16 +204,35 @@ def _ko_date(dt: datetime) -> str:
     return f"{dt:%m/%d}({_WD_KO[dt.weekday()]})"
 
 
-def upcoming_fixed(now: datetime, days: int = 60) -> list[Reminder]:
-    """다음 days일 동안의 고정(반복) 일정. 단발성은 제외, occurrence별 가장 이른
-    stage(=최초 안내 시점) 하나만 남긴다."""
+def _event_target_times(event_key: str, year: int, month: int) -> list[tuple[datetime, str, str]]:
+    """알림 stage가 아니라 '실제 이벤트 시각'(목표일/충전 시각)을 직접 계산.
+    예: 화성 충전은 항상 15:00, 수원은 09:00 — stage 기반으로는 둘 다 전날 21시
+    안내로만 보여 실제 시각 차이가 안 드러나는 문제를 피하기 위함."""
+    meta = ev.EVENTS[event_key]
+    out: list[tuple[datetime, str, str]] = []
+    if meta["kind"] == "morning":
+        target = meta["target"](year, month)
+        out.append((_dt(target, 8, 30), meta["emoji"], meta["label"]))
+    elif meta["kind"] == "remit2":
+        d1, d2 = meta["days"](year, month)
+        out.append((_dt(d1, 8, 30), meta["emoji"], f"{meta['label']} (1일차)"))
+        out.append((_dt(d2, 8, 30), meta["emoji"], f"{meta['label']} (2일차)"))
+    elif meta["kind"] == "firstcome":
+        charge = meta["charge"](year, month)
+        hh, mm = meta["charge_hhmm"]
+        out.append((_dt(charge, hh, mm), meta["emoji"], f"{meta['label']} 오픈"))
+    return out
+
+
+def upcoming_fixed(now: datetime, days: int = 60) -> list[tuple[datetime, str, str]]:
+    """다음 days일 동안의 고정(반복) 일정 — 실제 이벤트 시각 기준. 단발성은 제외.
+    반환: (시각, 이모지, 라벨) 목록, 시각순 정렬."""
     end_dt = now + timedelta(days=days)
     months = set()
     d = now.date()
     while d <= end_dt.date():
         months.add((d.year, d.month))
         d += timedelta(days=1)
-    # 월경계 stage(예: 전월 말일 21시 알림) 누락 방지로 앞뒤 한 달씩 더 본다.
     for (y, m) in list(months):
         for delta in (-1, 1):
             yy, mm = y, m + delta
@@ -223,15 +242,20 @@ def upcoming_fixed(now: datetime, days: int = 60) -> list[Reminder]:
                 yy, mm = y + 1, 1
             months.add((yy, mm))
 
-    best: dict[str, Reminder] = {}
+    seen = set()
+    out: list[tuple[datetime, str, str]] = []
     for (y, m) in months:
         for key in ev.EVENTS:
-            for r in _expand_event(key, y, m):
-                if r.occ_id not in best or r.fire_at < best[r.occ_id].fire_at:
-                    best[r.occ_id] = r
+            for dt, emoji, label in _event_target_times(key, y, m):
+                if not (now <= dt <= end_dt):
+                    continue
+                sig = (key, dt.isoformat())
+                if sig in seen:
+                    continue
+                seen.add(sig)
+                out.append((dt, emoji, label))
 
-    out = [r for r in best.values() if now <= r.fire_at <= end_dt]
-    out.sort(key=lambda r: r.fire_at)
+    out.sort(key=lambda x: x[0])
     return out
 
 
@@ -240,8 +264,8 @@ def format_fixed_list(now: datetime, days: int = 60) -> str:
     if not items:
         return f"📅 앞으로 {days}일 동안 예정된 고정 일정이 없습니다."
     lines = [f"📅 <b>고정 일정</b> (다음 {days}일)"]
-    for r in items:
-        lines.append(f"• {_ko_date(r.fire_at)} {r.fire_at:%H:%M}  {r.emoji} {r.label}")
+    for dt, emoji, label in items:
+        lines.append(f"• {_ko_date(dt)} {dt:%H:%M}  {emoji} {label}")
     return "\n".join(lines)
 
 

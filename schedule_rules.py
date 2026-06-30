@@ -98,12 +98,13 @@ def _expand_event(event_key: str, year: int, month: int) -> list[Reminder]:
         charge_dt = _dt(charge, hh, mm)
         eve_fire = _dt(eve_day, 21, 0)
         # eve catch-up: 다음 stage(pre)가 뜨기 전까지 유효
-        eve_catch = max(120, int((charge_dt - eve_fire).total_seconds() // 60) - 30)
+        eve_catch = max(120, int((charge_dt - eve_fire).total_seconds() // 60) - 10)
 
-        # 두 도시 동일 패턴: 전날 저녁 21시 → 오픈 30분 전 → 오픈 정각
+        # 두 도시 동일 패턴: 전날 저녁 21시 → 오픈 10분 전(스탠바이) → 오픈 정각
+        # 수원 09:00 → 08:50 / 화성 15:00 → 14:50
         stages: list[tuple[str, datetime, int]] = [
             ("eve", eve_fire, eve_catch),
-            ("pre", charge_dt - timedelta(minutes=30), 90),
+            ("pre", charge_dt - timedelta(minutes=10), 90),
             ("now", charge_dt, 120),
         ]
 

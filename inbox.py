@@ -40,8 +40,10 @@ def process_inbox(state: dict, done_by: str) -> tuple[int, int]:
             # 메뉴에서 /add만 누르면 즉시 전송됨 → 사용법 대신 ForceReply로 바로 입력받기
             oneoff.set_awaiting_add(True)
             tg.send_force_reply(
-                "📌 추가할 일정을 입력해주세요\n예) 6/15 14:00 치과예약 (시각 생략 시 08:30)",
-                placeholder="6/15 14:00 치과예약",
+                "📌 추가할 일정을 입력해주세요\n"
+                "예) 0630 1350 송금종이  /  6/15 14:00 치과예약\n"
+                "(시각 생략 시 08:30)",
+                placeholder="0630 1350 송금종이",
             )
             log.info("명령: /add (ForceReply 대기)")
             handled += 1

@@ -24,6 +24,7 @@ from pathlib import Path
 import schedule_rules as sr
 import state_store as ss
 import notifier_telegram as tg
+import oneoff_store as oneoff
 import inbox
 
 logging.basicConfig(
@@ -41,6 +42,7 @@ ACTIVE_FILE = REPO_DIR / "local_active.json"   # 로컬 전용 활성 알림(스
 LOOP_SEC = 15
 PULL_EVERY_SEC = 300          # 5분마다 git pull (클라우드 완료 반영)
 INBOX_EVERY_SEC = 20          # 텔레그램 완료/명령 폴링 주기(PC 켜져있으면 거의 즉시 반영)
+PRUNE_EVERY_SEC = 600         # 10분마다 지나간 단발성 일정 자동 삭제
 GIT_SYNC = os.environ.get("LOCAL_GIT_SYNC", "1") != "0"
 
 
@@ -128,8 +130,8 @@ def git_push_state() -> None:
     if not GIT_SYNC:
         return
     _git("pull", "--rebase", "--autostash")
-    _git("add", "state.json")
-    _run_git(["commit", "-m", "state: local 완료 동기화"])   # 변경 없으면 실패해도 무시
+    _git("add", "state.json", "oneoff.json")
+    _run_git(["commit", "-m", "state: local 동기화(완료/명령/자동삭제)"])   # 변경 없으면 실패해도 무시
     _git("push")
 
 
@@ -270,6 +272,7 @@ def main() -> None:
     log.info("스케쥴 알리미(로컬) 시작 — 완료 누를 때까지 스누즈로 반복 알림 + 텔레그램 동시 발송")
     last_pull = 0.0
     last_inbox = 0.0
+    last_prune = 0.0
     while True:
         try:
             if time.time() - last_pull > PULL_EVERY_SEC:
@@ -279,6 +282,14 @@ def main() -> None:
             if time.time() - last_inbox > INBOX_EVERY_SEC:
                 _process_inbox_and_push()
                 last_inbox = time.time()
+
+            if time.time() - last_prune > PRUNE_EVERY_SEC:
+                with _lock:
+                    removed = oneoff.prune()
+                if removed:
+                    log.info(f"단발성 일정 자동삭제: {removed}건")
+                    threading.Thread(target=git_push_state, daemon=True).start()
+                last_prune = time.time()
 
             now = _resolve_now()
             state = ss.load()

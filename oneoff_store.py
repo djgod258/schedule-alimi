@@ -49,18 +49,23 @@ def remove_item(key: str) -> int:
     return len(items) - len(kept)
 
 
-def prune(keep_days: int = 30) -> None:
-    """지난 일정 정리(시각이 keep_days 이전이면 삭제)."""
+def prune(keep_days: int = 1) -> int:
+    """지난 일정 자동 삭제 — 일정 시각 + keep_days(기본 1일, catchup 14h 여유분 포함)
+    가 지나면 더 이상 알림이 울리지 않으므로 oneoff.json에서 제거. 삭제 개수 반환."""
     cutoff = datetime.now(KST) - timedelta(days=keep_days)
+    items = load_items()
     kept = []
-    for x in load_items():
+    for x in items:
         try:
             dt = datetime.fromisoformat(x["datetime"]).replace(tzinfo=KST)
         except Exception:
             continue
         if dt >= cutoff:
             kept.append(x)
-    save_items(kept)
+    removed = len(items) - len(kept)
+    if removed:
+        save_items(kept)
+    return removed
 
 
 def format_list() -> str:

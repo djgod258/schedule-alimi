@@ -163,13 +163,15 @@ def due_reminders(
     now: datetime,
     is_suppressed,
     include_now_stage: bool = True,
-    grace_min: int = 5,
+    grace_min: int = 0,
 ) -> list[Reminder]:
     """발송시각이 지났고(따라잡기 창 이내) 아직 발송/완료되지 않은 reminder 목록.
 
     핵심: fire_at - grace <= now <= fire_at + catchup_min.
     → GitHub Actions가 몇 시간 늦게 실행돼도, 시각이 지난 알림을 '그날 안에' 따라잡아
       한 번 발송한다(중복은 is_suppressed로 방지). 이로써 깨움 지연/누락에 견고해진다.
+      grace_min은 기본 0 — '늦게' 확인해도 catchup_min이 이미 커버하므로,
+      '일찍'(예정 시각 전) 울릴 이유가 없다. 0보다 크면 그만큼 더 일찍 울린다.
 
     is_suppressed(occ_id, stage) -> bool : 이미 발송했거나 완료(done)면 True.
     include_now_stage : 클라우드는 'now'(자정 정각) stage를 안 보내려면 False.

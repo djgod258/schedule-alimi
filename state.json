@@ -48,9 +48,9 @@
       "stages_sent": [
         "eve"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-07-01T08:24:17.804713+09:00",
+      "done_by": "local"
     },
     "localpay_suwon:2026-07-01": {
       "stages_sent": [

@@ -1,4 +1,10 @@
 {
-  "items": [],
-  "awaiting_add": true
+  "items": [
+    {
+      "id": "20260630T1355-4b9e",
+      "datetime": "2026-06-30T13:55",
+      "title": "송금종이"
+    }
+  ],
+  "awaiting_add": false
 }

@@ -1,4 +1,10 @@
 # 텔레그램 인박스(완료 콜백/명령/일반 답장) 처리 — run_cloud / run_local 공용
+#
+# fetch(네트워크, 느릴 수 있음)와 apply(상태 변경, 빠름)를 분리해 두었다.
+# run_local처럼 락을 잡고 있으면 안 되는 긴 네트워크 대기(롱폴링)가 있는 호출부는
+# fetch를 락 밖에서, apply만 락 안에서 부르면 된다. run_cloud처럼 짧게 한 번 확인하고
+# 끝내는 경우는 process_inbox()로 fetch+apply를 한 번에 처리하면 된다.
+
 from __future__ import annotations
 
 import re
@@ -18,12 +24,16 @@ def _send_list_buttons() -> None:
     tg.send_with_buttons(oneoff.format_list(), oneoff.list_keyboard())
 
 
-def process_inbox(state: dict, done_by: str) -> tuple[int, int]:
-    """getUpdates로 완료/명령/일반 답장을 수신·반영. (완료건수, 명령+답장건수) 반환.
-    state는 in-place 갱신."""
-    done_ids, commands, texts, new_offset = tg.fetch_updates(state.get("tg_last_update_id", 0))
-    state["tg_last_update_id"] = new_offset
+def fetch(last_update_id: int, timeout: int = 0):
+    """텔레그램 getUpdates 호출(네트워크). timeout>0이면 롱폴링으로 대기.
+    반환: (done_ids, commands, texts, new_offset) — 상태는 건드리지 않음."""
+    return tg.fetch_updates(last_update_id, timeout=timeout)
 
+
+def apply(state: dict, done_ids: list[str], commands: list[str], texts: list[str],
+          done_by: str) -> tuple[int, int]:
+    """fetch() 결과를 state에 반영 + 필요한 답장 발송. (완료건수, 명령+답장건수) 반환.
+    state["tg_last_update_id"]는 호출 전에 이미 갱신돼 있어야 한다."""
     for occ_id in done_ids:
         if ss.mark_done(state, occ_id, by=done_by):
             log.info(f"완료 처리: {occ_id}")
@@ -81,3 +91,10 @@ def process_inbox(state: dict, done_by: str) -> tuple[int, int]:
             handled += 1
 
     return len(done_ids), handled
+
+
+def process_inbox(state: dict, done_by: str, timeout: int = 0) -> tuple[int, int]:
+    """fetch + apply를 한 번에. 짧게 한 번 확인하고 끝내는 호출부(run_cloud)용."""
+    done_ids, commands, texts, new_offset = fetch(state.get("tg_last_update_id", 0), timeout=timeout)
+    state["tg_last_update_id"] = new_offset
+    return apply(state, done_ids, commands, texts, done_by)

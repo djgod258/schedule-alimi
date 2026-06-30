@@ -41,7 +41,7 @@ REPO_DIR = Path(__file__).parent
 ACTIVE_FILE = REPO_DIR / "local_active.json"   # 로컬 전용 활성 알림(스누즈) 상태
 LOOP_SEC = 15
 PULL_EVERY_SEC = 300          # 5분마다 git pull (클라우드 완료 반영)
-INBOX_EVERY_SEC = 20          # 텔레그램 완료/명령 폴링 주기(PC 켜져있으면 거의 즉시 반영)
+INBOX_LONGPOLL_SEC = 25       # 텔레그램 롱폴링 대기시간(서버가 새 메시지 오면 즉시 응답)
 PRUNE_EVERY_SEC = 600         # 10분마다 지나간 단발성 일정 자동 삭제
 GIT_SYNC = os.environ.get("LOCAL_GIT_SYNC", "1") != "0"
 
@@ -165,17 +165,35 @@ def _send_telegram_and_record(r: sr.Reminder) -> None:
         threading.Thread(target=git_push_state, daemon=True).start()
 
 
-def _process_inbox_and_push() -> None:
-    """텔레그램 완료버튼/명령(/add /list /del)을 로컬이 직접 폴링·처리(PC 켜진 동안 거의 즉시)."""
-    if not _telegram_ready():
-        return
-    with _lock:
-        st = ss.load()
-        done_n, cmd_n = inbox.process_inbox(st, done_by="telegram")
-        ss.save(st)
-    if done_n or cmd_n:
-        log.info(f"인박스(로컬): 완료 {done_n}건 / 명령 {cmd_n}건")
-        threading.Thread(target=git_push_state, daemon=True).start()
+def _inbox_long_poll_loop() -> None:
+    """텔레그램 getUpdates를 롱폴링으로 상시 대기 — 메시지 오면 1~2초 내 반응.
+    네트워크 대기(최대 INBOX_LONGPOLL_SEC초)는 _lock 밖에서 수행해, 그 사이에도
+    메인 루프(알림 due 체크·팝업·완료버튼)가 멈추지 않게 한다."""
+    log.info(f"텔레그램 롱폴링 시작(최대 {INBOX_LONGPOLL_SEC}초 대기)")
+    while True:
+        if not _telegram_ready():
+            time.sleep(5)
+            continue
+        try:
+            with _lock:
+                offset = ss.load().get("tg_last_update_id", 0)
+            done_ids, commands, texts, new_offset = inbox.fetch(offset, timeout=INBOX_LONGPOLL_SEC)
+        except Exception as e:
+            log.warning(f"인박스 롱폴링 오류: {e}")
+            time.sleep(5)
+            continue
+
+        if not done_ids and not commands and not texts and new_offset == offset:
+            continue  # 타임아웃으로 빈손 귀환 — 새 소식 없음, 즉시 재요청
+
+        with _lock:
+            st = ss.load()
+            st["tg_last_update_id"] = new_offset
+            done_n, handled_n = inbox.apply(st, done_ids, commands, texts, done_by="telegram")
+            ss.save(st)
+        if done_n or handled_n:
+            log.info(f"인박스(즉시): 완료 {done_n}건 / 명령 {handled_n}건")
+            threading.Thread(target=git_push_state, daemon=True).start()
 
 
 # ── 팝업 ─────────────────────────────────────────────────────────────────────
@@ -270,18 +288,14 @@ def _resolve_now() -> datetime:
 
 def main() -> None:
     log.info("스케쥴 알리미(로컬) 시작 — 완료 누를 때까지 스누즈로 반복 알림 + 텔레그램 동시 발송")
+    threading.Thread(target=_inbox_long_poll_loop, daemon=True).start()
     last_pull = 0.0
-    last_inbox = 0.0
     last_prune = 0.0
     while True:
         try:
             if time.time() - last_pull > PULL_EVERY_SEC:
                 git_pull()
                 last_pull = time.time()
-
-            if time.time() - last_inbox > INBOX_EVERY_SEC:
-                _process_inbox_and_push()
-                last_inbox = time.time()
 
             if time.time() - last_prune > PRUNE_EVERY_SEC:
                 with _lock:

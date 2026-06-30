@@ -111,8 +111,12 @@ def _answer_callback(callback_id: str, text: str = "완료 처리됨 ✅") -> No
         log.error(f"answerCallbackQuery 오류: {e}")
 
 
-def fetch_updates(last_update_id: int) -> tuple[list[str], list[str], list[str], int]:
+def fetch_updates(last_update_id: int, timeout: int = 0) -> tuple[list[str], list[str], list[str], int]:
     """getUpdates로 완료 신호 + 명령 텍스트 + 일반 답장 텍스트 수집.
+
+    timeout>0이면 텔레그램 서버에 연결을 열어두고 새 메시지가 올 때까지 대기하는
+    롱폴링 모드(최대 timeout초). 새 메시지가 오면 즉시 반환되므로 클라우드처럼
+    가끔 한 번 확인하는 용도가 아니라 PC처럼 상시 대기할 때 응답이 훨씬 빨라진다.
 
     완료 경로:
       1) 인라인버튼 콜백:  callback_data = "done:<occ_id>"
@@ -134,9 +138,9 @@ def fetch_updates(last_update_id: int) -> tuple[list[str], list[str], list[str],
     try:
         resp = requests.get(f"{API}/getUpdates", params={
             "offset": last_update_id + 1,
-            "timeout": 0,
+            "timeout": timeout,
             "allowed_updates": json.dumps(["callback_query", "message"]),
-        }, timeout=15)
+        }, timeout=timeout + 15)
         if not resp.ok:
             log.error(f"getUpdates 실패: {resp.text}")
             return [], [], [], last_update_id

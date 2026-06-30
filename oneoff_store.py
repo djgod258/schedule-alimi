@@ -19,18 +19,42 @@ ONEOFF_FILE = Path(__file__).parent / "oneoff.json"
 DEFAULT_HHMM = (8, 30)   # 시각 미지정 시 아침 08:30
 
 
-def load_items() -> list[dict]:
+def _load_root() -> dict:
     if ONEOFF_FILE.exists():
         try:
-            return json.loads(ONEOFF_FILE.read_text(encoding="utf-8")).get("items", [])
+            data = json.loads(ONEOFF_FILE.read_text(encoding="utf-8"))
         except Exception:
-            return []
-    return []
+            data = {}
+    else:
+        data = {}
+    data.setdefault("items", [])
+    data.setdefault("awaiting_add", False)   # "/add" 단독 입력 후 다음 답장을 기다리는 중인지
+    return data
+
+
+def _save_root(data: dict) -> None:
+    ONEOFF_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def load_items() -> list[dict]:
+    return _load_root()["items"]
 
 
 def save_items(items: list[dict]) -> None:
-    ONEOFF_FILE.write_text(
-        json.dumps({"items": items}, ensure_ascii=False, indent=2), encoding="utf-8")
+    data = _load_root()
+    data["items"] = items
+    _save_root(data)
+
+
+def is_awaiting_add() -> bool:
+    """/add를 인자 없이 보낸 뒤 다음 답장을 일정으로 받을 준비 상태인지."""
+    return bool(_load_root().get("awaiting_add"))
+
+
+def set_awaiting_add(flag: bool) -> None:
+    data = _load_root()
+    data["awaiting_add"] = flag
+    _save_root(data)
 
 
 def add_item(dt_iso: str, title: str) -> str:

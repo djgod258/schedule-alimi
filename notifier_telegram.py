@@ -65,6 +65,25 @@ def send_plain(message: str) -> bool:
         return False
 
 
+def send_force_reply(message: str, placeholder: str = "") -> bool:
+    """ForceReply로 메시지를 보내 사용자의 다음 답장 입력칸을 바로 활성화.
+    '/add' 단독 입력 시 사용법 안내 대신 즉시 입력받기 위함."""
+    if not _enabled():
+        return False
+    try:
+        markup = {"force_reply": True, "input_field_placeholder": placeholder or "여기에 입력"}
+        resp = requests.post(f"{API}/sendMessage", data={
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": message,
+            "parse_mode": "HTML",
+            "reply_markup": json.dumps(markup),
+        }, timeout=10)
+        return resp.ok
+    except Exception as e:
+        log.error(f"텔레그램 오류: {e}")
+        return False
+
+
 def send_with_buttons(message: str, inline_keyboard: list) -> bool:
     """임의 인라인 버튼(행 목록)과 함께 메시지 전송. 단발성 일정 /list 등에서 사용."""
     if not _enabled():
@@ -92,8 +111,8 @@ def _answer_callback(callback_id: str, text: str = "완료 처리됨 ✅") -> No
         log.error(f"answerCallbackQuery 오류: {e}")
 
 
-def fetch_updates(last_update_id: int) -> tuple[list[str], list[str], int]:
-    """getUpdates로 완료 신호 + 명령 텍스트 수집.
+def fetch_updates(last_update_id: int) -> tuple[list[str], list[str], list[str], int]:
+    """getUpdates로 완료 신호 + 명령 텍스트 + 일반 답장 텍스트 수집.
 
     완료 경로:
       1) 인라인버튼 콜백:  callback_data = "done:<occ_id>"
@@ -101,13 +120,16 @@ def fetch_updates(last_update_id: int) -> tuple[list[str], list[str], int]:
     명령 경로(단발성 일정 — 텍스트 또는 /list의 인라인 버튼 탭):
       "/add 6/15 14:00 치과예약", "/list", "/del <id끝4자리>"
       버튼: callback_data="ondel:<id>"(삭제) / "onlist"(새로고침) → 동등한 명령으로 변환
-    반환: (완료된 occ_id 리스트, 명령 텍스트 리스트, 새 last_update_id)
+    일반 텍스트(슬래시 없음): "/add"를 인자 없이 보낸 뒤 ForceReply로 받는 답장 등.
+      oneoff_store.is_awaiting_add()가 True일 때만 호출 측에서 의미 있게 처리.
+    반환: (완료된 occ_id 리스트, 명령 텍스트 리스트, 일반 텍스트 리스트, 새 last_update_id)
     """
     if not _enabled():
-        return [], [], last_update_id
+        return [], [], [], last_update_id
 
     done_ids: list[str] = []
     commands: list[str] = []
+    texts: list[str] = []
     new_offset = last_update_id
     try:
         resp = requests.get(f"{API}/getUpdates", params={
@@ -117,7 +139,7 @@ def fetch_updates(last_update_id: int) -> tuple[list[str], list[str], int]:
         }, timeout=15)
         if not resp.ok:
             log.error(f"getUpdates 실패: {resp.text}")
-            return [], [], last_update_id
+            return [], [], [], last_update_id
         for upd in resp.json().get("result", []):
             new_offset = max(new_offset, upd.get("update_id", new_offset))
 
@@ -145,14 +167,16 @@ def fetch_updates(last_update_id: int) -> tuple[list[str], list[str], int]:
                 done_ids.append(text[len("done:"):].strip())
             elif text.startswith(("/add", "/list", "/del", "/help")):
                 commands.append(text)
+            elif not text.startswith("/"):
+                texts.append(text)
     except Exception as e:
         log.error(f"getUpdates 오류: {e}")
-        return [], [], last_update_id
+        return [], [], [], last_update_id
 
-    return done_ids, commands, new_offset
+    return done_ids, commands, texts, new_offset
 
 
 # 하위호환 별칭
 def fetch_done_acks(last_update_id: int) -> tuple[list[str], int]:
-    done_ids, _cmds, off = fetch_updates(last_update_id)
+    done_ids, _cmds, _texts, off = fetch_updates(last_update_id)
     return done_ids, off

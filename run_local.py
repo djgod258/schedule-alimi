@@ -168,32 +168,34 @@ def _send_telegram_and_record(r: sr.Reminder) -> None:
 def _inbox_long_poll_loop() -> None:
     """텔레그램 getUpdates를 롱폴링으로 상시 대기 — 메시지 오면 1~2초 내 반응.
     네트워크 대기(최대 INBOX_LONGPOLL_SEC초)는 _lock 밖에서 수행해, 그 사이에도
-    메인 루프(알림 due 체크·팝업·완료버튼)가 멈추지 않게 한다."""
+    메인 루프(알림 due 체크·팝업·완료버튼)가 멈추지 않게 한다.
+    전체를 try/except로 감싸 — 어디서든 예외가 나도 스레드가 조용히 죽지 않고
+    로그를 남긴 뒤 계속 돈다(daemon 스레드라 죽으면 pythonw에선 흔적 없이 사라짐)."""
     log.info(f"텔레그램 롱폴링 시작(최대 {INBOX_LONGPOLL_SEC}초 대기)")
     while True:
-        if not _telegram_ready():
-            time.sleep(5)
-            continue
         try:
+            if not _telegram_ready():
+                time.sleep(5)
+                continue
+
             with _lock:
                 offset = ss.load().get("tg_last_update_id", 0)
             done_ids, commands, texts, new_offset = inbox.fetch(offset, timeout=INBOX_LONGPOLL_SEC)
-        except Exception as e:
-            log.warning(f"인박스 롱폴링 오류: {e}")
+
+            if not done_ids and not commands and not texts and new_offset == offset:
+                continue  # 타임아웃으로 빈손 귀환 — 새 소식 없음, 즉시 재요청
+
+            with _lock:
+                st = ss.load()
+                st["tg_last_update_id"] = new_offset
+                done_n, handled_n = inbox.apply(st, done_ids, commands, texts, done_by="telegram")
+                ss.save(st)
+            if done_n or handled_n:
+                log.info(f"인박스(즉시): 완료 {done_n}건 / 명령 {handled_n}건")
+                threading.Thread(target=git_push_state, daemon=True).start()
+        except Exception:
+            log.exception("인박스 롱폴링 루프 오류 — 5초 후 재시도")
             time.sleep(5)
-            continue
-
-        if not done_ids and not commands and not texts and new_offset == offset:
-            continue  # 타임아웃으로 빈손 귀환 — 새 소식 없음, 즉시 재요청
-
-        with _lock:
-            st = ss.load()
-            st["tg_last_update_id"] = new_offset
-            done_n, handled_n = inbox.apply(st, done_ids, commands, texts, done_by="telegram")
-            ss.save(st)
-        if done_n or handled_n:
-            log.info(f"인박스(즉시): 완료 {done_n}건 / 명령 {handled_n}건")
-            threading.Thread(target=git_push_state, daemon=True).start()
 
 
 # ── 팝업 ─────────────────────────────────────────────────────────────────────

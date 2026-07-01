@@ -210,6 +210,8 @@ def show_popup(key: str, entry: dict) -> None:
     slot = _acquire_slot()
 
     def _run():
+        if slot > 0:
+            time.sleep(0.5 * slot)  # 동시 tk.Tk() 초기화 충돌 방지 — 두 번째 팝업부터 지연
         root = tk.Tk()
         root.title(entry["label"])
         root.configure(bg=BG)

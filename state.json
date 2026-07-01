@@ -59,7 +59,15 @@
       "done": false,
       "done_at": null,
       "done_by": null
+    },
+    "remit_monthend:2026-07-01": {
+      "stages_sent": [
+        "morning"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
     }
   },
-  "tg_last_update_id": 161380395
+  "tg_last_update_id": 161380396
 }

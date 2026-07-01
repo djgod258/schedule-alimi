@@ -57,9 +57,9 @@
         "eve",
         "pre"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-07-01T09:16:06.596120+09:00",
+      "done_by": "local"
     },
     "remit_monthend:2026-07-01": {
       "stages_sent": [

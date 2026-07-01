@@ -76,6 +76,14 @@
       "done": true,
       "done_at": "2026-07-01T15:10:33.979417+09:00",
       "done_by": "local"
+    },
+    "oneoff:20260701T2330-a58b": {
+      "stages_sent": [
+        "once"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
     }
   },
   "tg_last_update_id": 161380401

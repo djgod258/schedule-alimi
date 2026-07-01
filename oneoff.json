@@ -4,7 +4,12 @@
       "id": "20260701T1430-94e1",
       "datetime": "2026-07-01T14:30",
       "title": "화성페이"
+    },
+    {
+      "id": "20260701T2330-a58b",
+      "datetime": "2026-07-01T23:30",
+      "title": ";;"
     }
   ],
-  "awaiting_add": true
+  "awaiting_add": false
 }

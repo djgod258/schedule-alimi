@@ -84,14 +84,6 @@
       "done": true,
       "done_at": "2026-07-02T08:17:47.767299+09:00",
       "done_by": "local"
-    },
-    "komarketing:2026-07-03": {
-      "stages_sent": [
-        "morning"
-      ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
     }
   },
   "tg_last_update_id": 161380402

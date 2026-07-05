@@ -40,9 +40,9 @@
       "stages_sent": [
         "once"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-07-06T08:27:32.090449+09:00",
+      "done_by": "local"
     },
     "localpay_hwaseong:2026-07-01": {
       "stages_sent": [

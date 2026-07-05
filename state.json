@@ -10,9 +10,9 @@
       "stages_sent": [
         "morning"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-07-06T08:27:33.196413+09:00",
+      "done_by": "local"
     },
     "remit_day9:2026-06-09": {
       "stages_sent": [

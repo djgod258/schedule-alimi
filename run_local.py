@@ -298,6 +298,14 @@ def _resolve_now() -> datetime:
 
 def main() -> None:
     log.info("스케쥴 알리미(로컬) 시작 — 완료 누를 때까지 스누즈로 반복 알림 + 텔레그램 동시 발송")
+    # 이전 프로세스가 팝업 열린 채로 죽으면 showing=true가 파일에 남아
+    # 재시작 후 해당 항목을 영원히 건너뛰는 버그 방지 — 시작 시 전부 false로 리셋
+    with _lock:
+        a = load_active()
+        for e in a.values():
+            if e.get("showing"):
+                e["showing"] = False
+        save_active(a)
     threading.Thread(target=_inbox_long_poll_loop, daemon=True).start()
     last_pull = 0.0
     last_prune = 0.0

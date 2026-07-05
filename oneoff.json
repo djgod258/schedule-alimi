@@ -1,4 +1,10 @@
 {
-  "items": [],
-  "awaiting_add": true
+  "items": [
+    {
+      "id": "20260706T0600-f0f2",
+      "datetime": "2026-07-06T06:00",
+      "title": "젤리 밥"
+    }
+  ],
+  "awaiting_add": false
 }

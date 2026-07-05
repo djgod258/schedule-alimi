@@ -93,14 +93,14 @@
       "done_at": null,
       "done_by": null
     },
-    "yongin:2026-07-05": {
+    "oneoff:20260706T0600-f0f2": {
       "stages_sent": [
-        "morning"
+        "once"
       ],
       "done": false,
       "done_at": null,
       "done_by": null
     }
   },
-  "tg_last_update_id": 161380404
+  "tg_last_update_id": 161380406
 }

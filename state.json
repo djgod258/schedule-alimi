@@ -105,9 +105,9 @@
       "stages_sent": [
         "morning"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-07-07T13:49:17.493091+09:00",
+      "done_by": "local"
     }
   },
   "tg_last_update_id": 161380406

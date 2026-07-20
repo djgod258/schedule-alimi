@@ -129,9 +129,9 @@
       "stages_sent": [
         "once"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-07-20T10:07:38.992416+09:00",
+      "done_by": "local"
     }
   },
   "tg_last_update_id": 161380413

@@ -121,9 +121,9 @@
       "stages_sent": [
         "once"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-07-20T13:46:31.490445+09:00",
+      "done_by": "telegram"
     },
     "oneoff:20260720T0955-fe3a": {
       "stages_sent": [
@@ -134,5 +134,5 @@
       "done_by": "local"
     }
   },
-  "tg_last_update_id": 161380413
+  "tg_last_update_id": 161380414
 }

@@ -140,6 +140,14 @@
       "done": true,
       "done_at": "2026-07-31T14:05:51.613363+09:00",
       "done_by": "local"
+    },
+    "localpay_hwaseong:2026-08-01": {
+      "stages_sent": [
+        "eve"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
     }
   },
   "tg_last_update_id": 161380417

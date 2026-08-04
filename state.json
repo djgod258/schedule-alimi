@@ -182,6 +182,14 @@
       "done": false,
       "done_at": null,
       "done_by": null
+    },
+    "yongin:2026-08-05": {
+      "stages_sent": [
+        "morning"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
     }
   },
   "tg_last_update_id": 161380417

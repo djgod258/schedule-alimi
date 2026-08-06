@@ -190,6 +190,14 @@
       "done": false,
       "done_at": null,
       "done_by": null
+    },
+    "remit_day9:2026-08-07": {
+      "stages_sent": [
+        "morning"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
     }
   },
   "tg_last_update_id": 161380417

@@ -163,41 +163,41 @@
       "stages_sent": [
         "morning"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-08-10T08:18:44.729463+09:00",
+      "done_by": "local"
     },
     "komarketing:2026-08-05": {
       "stages_sent": [
         "morning"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-08-10T08:18:44.563489+09:00",
+      "done_by": "local"
     },
     "surcharge:2026-08-05": {
       "stages_sent": [
         "morning"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-08-10T08:18:44.394759+09:00",
+      "done_by": "local"
     },
     "yongin:2026-08-05": {
       "stages_sent": [
         "morning"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-08-10T08:18:44.240903+09:00",
+      "done_by": "local"
     },
     "remit_day9:2026-08-07": {
       "stages_sent": [
         "morning"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-08-10T08:18:43.750157+09:00",
+      "done_by": "local"
     }
   },
   "tg_last_update_id": 161380417

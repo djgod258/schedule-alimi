@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import os
+import re
 import json
 import logging
 
@@ -17,6 +18,15 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 API = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+TOKEN_PATTERN = re.compile(r"\d{8,}:[A-Za-z0-9_-]{20,}")
+
+
+def _safe_error(value) -> str:
+    """요청 URL이나 응답에 포함될 수 있는 봇 토큰을 로그에서 제거한다."""
+    text = str(value)
+    if TELEGRAM_TOKEN:
+        text = text.replace(TELEGRAM_TOKEN, "[REDACTED_TOKEN]")
+    return TOKEN_PATTERN.sub("[REDACTED_TOKEN]", text)
 
 
 def _enabled() -> bool:
@@ -24,6 +34,14 @@ def _enabled() -> bool:
         log.warning("텔레그램 환경변수 없음 - 알림 스킵")
         return False
     return True
+
+
+def _is_expected_chat(chat: object) -> bool:
+    """설정된 스케쥴 채팅방에서 온 업데이트인지 확인한다."""
+    if not isinstance(chat, dict):
+        return False
+    chat_id = chat.get("id")
+    return chat_id is not None and str(chat_id).strip() == TELEGRAM_CHAT_ID.strip()
 
 
 def send_reminder(message: str, occ_id: str) -> bool:
@@ -44,9 +62,9 @@ def send_reminder(message: str, occ_id: str) -> bool:
         }, timeout=10)
         if resp.ok:
             return True
-        log.error(f"텔레그램 전송 실패: {resp.text}")
+        log.error(f"텔레그램 전송 실패: {_safe_error(resp.text)}")
     except Exception as e:
-        log.error(f"텔레그램 오류: {e}")
+        log.error(f"텔레그램 오류: {_safe_error(e)}")
     return False
 
 
@@ -61,7 +79,7 @@ def send_plain(message: str) -> bool:
         }, timeout=10)
         return resp.ok
     except Exception as e:
-        log.error(f"텔레그램 오류: {e}")
+        log.error(f"텔레그램 오류: {_safe_error(e)}")
         return False
 
 
@@ -80,7 +98,7 @@ def send_force_reply(message: str, placeholder: str = "") -> bool:
         }, timeout=10)
         return resp.ok
     except Exception as e:
-        log.error(f"텔레그램 오류: {e}")
+        log.error(f"텔레그램 오류: {_safe_error(e)}")
         return False
 
 
@@ -97,7 +115,7 @@ def send_with_buttons(message: str, inline_keyboard: list) -> bool:
         }, timeout=10)
         return resp.ok
     except Exception as e:
-        log.error(f"텔레그램 오류: {e}")
+        log.error(f"텔레그램 오류: {_safe_error(e)}")
         return False
 
 
@@ -108,7 +126,7 @@ def _answer_callback(callback_id: str, text: str = "완료 처리됨 ✅") -> No
             "text": text,
         }, timeout=10)
     except Exception as e:
-        log.error(f"answerCallbackQuery 오류: {e}")
+        log.error(f"answerCallbackQuery 오류: {_safe_error(e)}")
 
 
 def fetch_updates(last_update_id: int, timeout: int = 0) -> tuple[list[str], list[str], list[str], int]:
@@ -142,13 +160,16 @@ def fetch_updates(last_update_id: int, timeout: int = 0) -> tuple[list[str], lis
             "allowed_updates": json.dumps(["callback_query", "message"]),
         }, timeout=timeout + 15)
         if not resp.ok:
-            log.error(f"getUpdates 실패: {resp.text}")
+            log.error(f"getUpdates 실패: {_safe_error(resp.text)}")
             return [], [], [], last_update_id
         for upd in resp.json().get("result", []):
             new_offset = max(new_offset, upd.get("update_id", new_offset))
 
             cq = upd.get("callback_query")
             if cq:
+                callback_message = cq.get("message") or {}
+                if not _is_expected_chat(callback_message.get("chat")):
+                    continue
                 data = cq.get("data", "")
                 if data.startswith("done:"):
                     done_ids.append(data[len("done:"):])
@@ -162,6 +183,8 @@ def fetch_updates(last_update_id: int, timeout: int = 0) -> tuple[list[str], lis
                 continue
 
             msg = upd.get("message") or {}
+            if not _is_expected_chat(msg.get("chat")):
+                continue
             text = (msg.get("text") or "").strip()
             if not text:
                 continue
@@ -174,7 +197,7 @@ def fetch_updates(last_update_id: int, timeout: int = 0) -> tuple[list[str], lis
             elif not text.startswith("/"):
                 texts.append(text)
     except Exception as e:
-        log.error(f"getUpdates 오류: {e}")
+        log.error(f"getUpdates 오류: {_safe_error(e)}")
         return [], [], [], last_update_id
 
     return done_ids, commands, texts, new_offset

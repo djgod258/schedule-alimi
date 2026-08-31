@@ -100,6 +100,12 @@ def remit_day9_target(year: int, month: int) -> date:
     return prev_business_day(date(year, month, 9))
 
 
+def stockout_channel_notice_target(year: int, month: int) -> date:
+    """품절현황 채널공지: 매월 15일, 주말/공휴일이면 달력상 하루 전."""
+    target = date(year, month, 15)
+    return target - timedelta(days=1) if not is_business_day(target) else target
+
+
 def monthend_remit_days(year: int, month: int) -> tuple[date, date]:
     """월말 송금: (그 달 마지막 영업일, 그 다음 영업일=다음달 첫 영업일) 이틀."""
     last_biz = prev_business_day(last_day_of_month(year, month))
@@ -152,6 +158,12 @@ EVENTS = {
         "kind": "morning",          # 매월 9일(평일보정) 당일 아침 1회
         "target": remit_day9_target,
     },
+    "stockout_channel_notice": {
+        "label": "품절현황 채널공지",
+        "emoji": "📢",
+        "kind": "morning",          # 매월 15일, 비영업일이면 달력상 하루 전
+        "target": stockout_channel_notice_target,
+    },
     "remit_monthend": {
         "label": "월말 송금",
         "emoji": "💰",
@@ -169,4 +181,5 @@ if __name__ == "__main__":
         print(f"  추가금액(-2영업일)     : {surcharge_target(y, m)}")
         print(f"  용인(5일 고정)         : {yongin_target(y, m)}")
         print(f"  지역화폐 충전(1일)     : {localpay_charge(y, m)}")
+        print(f"  품절현황 채널공지(15일) : {stockout_channel_notice_target(y, m)}")
     # 기대: 2026-05 → 코마케팅/추가금액 모두 2026-05-06

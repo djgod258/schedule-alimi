@@ -209,7 +209,8 @@
     },
     "localpay_hwaseong:2026-09-01": {
       "stages_sent": [
-        "eve"
+        "eve",
+        "pre"
       ],
       "done": false,
       "done_at": null,

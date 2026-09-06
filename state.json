@@ -248,6 +248,14 @@
       "done": true,
       "done_at": "2026-09-07T08:26:11.840332+09:00",
       "done_by": "local"
+    },
+    "surcharge:2026-09-07": {
+      "stages_sent": [
+        "morning"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
     }
   },
   "tg_last_update_id": 161380418

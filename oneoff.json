@@ -1,4 +1,10 @@
 {
-  "items": [],
-  "awaiting_add": true
+  "items": [
+    {
+      "id": "20260914T0900-da54",
+      "datetime": "2026-09-14T09:00",
+      "title": "네멤+추석 쿠폰"
+    }
+  ],
+  "awaiting_add": false
 }

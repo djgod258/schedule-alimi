@@ -302,9 +302,9 @@
         "eve",
         "pre"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-10-01T09:03:11.232935+09:00",
+      "done_by": "local"
     },
     "remit_monthend:2026-10-01": {
       "stages_sent": [

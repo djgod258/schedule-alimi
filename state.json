@@ -300,6 +300,14 @@
       "done": true,
       "done_at": "2026-10-01T14:22:04.530179+09:00",
       "done_by": "local"
+    },
+    "yongin:2026-10-05": {
+      "stages_sent": [
+        "morning"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
     }
   },
   "tg_last_update_id": 161380421

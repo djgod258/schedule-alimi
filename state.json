@@ -1,19 +1,5 @@
 {
   "occurrences": {
-    "surcharge:2026-06-05": {
-      "stages_sent": [],
-      "done": true,
-      "done_at": "2026-06-05T16:53:25.160472+09:00",
-      "done_by": "local"
-    },
-    "yongin:2026-06-05": {
-      "stages_sent": [
-        "morning"
-      ],
-      "done": true,
-      "done_at": "2026-07-06T08:27:33.196413+09:00",
-      "done_by": "local"
-    },
     "remit_day9:2026-06-09": {
       "stages_sent": [
         "morning"

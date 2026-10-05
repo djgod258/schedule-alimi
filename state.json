@@ -316,6 +316,14 @@
       "done": false,
       "done_at": null,
       "done_by": null
+    },
+    "surcharge:2026-10-06": {
+      "stages_sent": [
+        "morning"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
     }
   },
   "tg_last_update_id": 161380421

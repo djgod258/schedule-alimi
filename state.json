@@ -6,14 +6,6 @@
       "done_at": "2026-06-24T09:00:23.396847+09:00",
       "done_by": "local"
     },
-    "remit_monthend:2026-06-30": {
-      "stages_sent": [
-        "morning"
-      ],
-      "done": true,
-      "done_at": "2026-06-30T10:12:34.295950+09:00",
-      "done_by": "local"
-    },
     "oneoff:20260630T1355-4b9e": {
       "stages_sent": [
         "once"

@@ -322,6 +322,14 @@
       "done": true,
       "done_at": "2026-10-15T09:55:34.423324+09:00",
       "done_by": "local"
+    },
+    "remit_monthend:2026-10-30": {
+      "stages_sent": [
+        "morning"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
     }
   },
   "tg_last_update_id": 161380421

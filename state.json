@@ -14,31 +14,6 @@
       "done_at": "2026-07-06T08:27:32.090449+09:00",
       "done_by": "local"
     },
-    "localpay_hwaseong:2026-07-01": {
-      "stages_sent": [
-        "eve"
-      ],
-      "done": true,
-      "done_at": "2026-07-01T08:24:17.804713+09:00",
-      "done_by": "local"
-    },
-    "localpay_suwon:2026-07-01": {
-      "stages_sent": [
-        "eve",
-        "pre"
-      ],
-      "done": true,
-      "done_at": "2026-07-01T09:16:06.596120+09:00",
-      "done_by": "local"
-    },
-    "remit_monthend:2026-07-01": {
-      "stages_sent": [
-        "morning"
-      ],
-      "done": true,
-      "done_at": "2026-07-01T14:01:22.535629+09:00",
-      "done_by": "local"
-    },
     "oneoff:20260701T1430-94e1": {
       "stages_sent": [
         "once"

@@ -316,7 +316,8 @@
     },
     "localpay_suwon:2026-11-01": {
       "stages_sent": [
-        "eve"
+        "eve",
+        "pre"
       ],
       "done": false,
       "done_at": null,

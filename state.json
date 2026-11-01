@@ -303,18 +303,18 @@
         "eve",
         "pre"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-11-02T08:17:05.502890+09:00",
+      "done_by": "local"
     },
     "localpay_suwon:2026-11-01": {
       "stages_sent": [
         "eve",
         "pre"
       ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
+      "done": true,
+      "done_at": "2026-11-02T08:17:06.043207+09:00",
+      "done_by": "local"
     }
   },
   "tg_last_update_id": 161380421

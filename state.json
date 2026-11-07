@@ -38,14 +38,6 @@
       "done_at": "2026-07-06T08:20:33.655953+09:00",
       "done_by": "local"
     },
-    "remit_day9:2026-07-09": {
-      "stages_sent": [
-        "morning"
-      ],
-      "done": false,
-      "done_at": null,
-      "done_by": null
-    },
     "oneoff:20260720T0900-498a": {
       "stages_sent": [
         "once"

@@ -339,6 +339,14 @@
       "done": true,
       "done_at": "2026-11-09T13:59:58.500659+09:00",
       "done_by": "local"
+    },
+    "stockout_channel_notice:2026-11-14": {
+      "stages_sent": [
+        "morning"
+      ],
+      "done": false,
+      "done_at": null,
+      "done_by": null
     }
   },
   "tg_last_update_id": 161380421
